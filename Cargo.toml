@@ -1,0 +1,9 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

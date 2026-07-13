@@ -1,0 +1,13 @@
+[package]
+name = "capsolve-sp"
+version = "0.1.0"
+edition = "2024"
+description = "High-performance CPU inference engine for the capsolve-sp CAPTCHA model"
+license = "MIT"
+publish = false
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["gif", "jpeg", "png", "webp"] }
+ort = { version = "=2.0.0-rc.10", default-features = false, features = ["std", "ndarray", "load-dynamic"] }

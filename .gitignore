@@ -1,0 +1,7 @@
+/models/
+/target/
+/captchas/
+/.venv/
+__pycache__/
+*.pt
+
