@@ -21,14 +21,24 @@ function App() {
   const [busy, setBusy] = useState(false)
   const sessionRef = useRef(null)
 
-  const selectFile = (event) => {
-    const next = event.target.files?.[0]
+  const setImageFile = (next) => {
     if (!next) return
+    if (!next.type.startsWith('image/')) {
+      setStatus('画像ファイルを選択してください')
+      return
+    }
     setFile(next)
     setResult('')
     setElapsedMs(null)
     setStatus('推論の準備ができました')
     setPreview(URL.createObjectURL(next))
+  }
+
+  const selectFile = (event) => setImageFile(event.target.files?.[0])
+
+  const dropFile = (event) => {
+    event.preventDefault()
+    setImageFile(event.dataTransfer.files?.[0])
   }
 
   const predict = async () => {
@@ -116,7 +126,12 @@ function App() {
               <p className="eyebrow">01 / INPUT</p>
               <span className="chip">175 × 60 px</span>
             </div>
-            <label className="dropzone" htmlFor="captcha-file">
+            <label
+              className="dropzone"
+              htmlFor="captcha-file"
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={dropFile}
+            >
               {preview ? (
                 <img src={preview} alt="選択した CAPTCHA" />
               ) : (
