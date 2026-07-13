@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as ort from 'onnxruntime-web'
 import './style.css'
@@ -16,14 +16,17 @@ function App() {
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState('')
   const [result, setResult] = useState('')
+  const [elapsedMs, setElapsedMs] = useState(null)
   const [status, setStatus] = useState('画像を選択してください')
   const [busy, setBusy] = useState(false)
+  const sessionRef = useRef(null)
 
   const selectFile = (event) => {
     const next = event.target.files?.[0]
     if (!next) return
     setFile(next)
     setResult('')
+    setElapsedMs(null)
     setStatus('推論の準備ができました')
     setPreview(URL.createObjectURL(next))
   }
@@ -34,10 +37,15 @@ function App() {
     setResult('')
     setStatus('モデルを読み込んでいます…')
     try {
-      const session = await ort.InferenceSession.create(MODEL_URL, {
-        executionProviders: ['wasm'],
-        graphOptimizationLevel: 'all',
-      })
+      const loadStarted = performance.now()
+      if (!sessionRef.current) {
+        sessionRef.current = await ort.InferenceSession.create(MODEL_URL, {
+          executionProviders: ['wasm'],
+          graphOptimizationLevel: 'all',
+        })
+      }
+      const session = sessionRef.current
+      const modelLoadMs = performance.now() - loadStarted
       const bitmap = await createImageBitmap(file)
       if (bitmap.width !== 175 || bitmap.height !== 60) {
         throw new Error('画像サイズは175×60 pxにしてください')
@@ -54,7 +62,9 @@ function App() {
         input[i] = (255 - gray) / 255
       }
       const tensor = new ort.Tensor('float32', input, [1, 1, 60, 175])
+      const inferenceStarted = performance.now()
       const output = await session.run({ image: tensor })
+      const inferenceMs = performance.now() - inferenceStarted
       const logits = output.logits.data
       let text = ''
       for (let position = 0; position < 5; position += 1) {
@@ -65,7 +75,12 @@ function App() {
         text += CHARS[best]
       }
       setResult(text)
-      setStatus('ブラウザ内のCPU推論が完了しました')
+      setElapsedMs(inferenceMs)
+      setStatus(
+        modelLoadMs > 1
+          ? `モデル準備 ${modelLoadMs.toFixed(0)} ms · CPU推論完了`
+          : 'キャッシュ済みモデルでCPU推論完了',
+      )
     } catch (error) {
       setStatus(error instanceof Error ? error.message : '推論に失敗しました')
     } finally {
@@ -124,7 +139,9 @@ function App() {
             <p className="eyebrow">02 / RESULT</p>
             <div className={`result ${result ? 'result-ready' : ''}`}>{result || '— — — — —'}</div>
             <p className="result-note">
-              {result ? '5文字すべての予測結果' : '結果がここに表示されます'}
+              {result
+                ? `5文字すべての予測結果 · 推論 ${elapsedMs.toFixed(2)} ms`
+                : '結果がここに表示されます'}
             </p>
           </div>
         </section>
