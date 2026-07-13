@@ -7,6 +7,10 @@ const REPO = "nakasyou/capsolve-sp";
 const MODEL_URL = `https://huggingface.co/${REPO}/resolve/main/model.onnx`;
 const CHARS = "0123456789abcdefghijklmnopqrstuvwxyz";
 
+// Vite emits the ORT WASM runtime beside the application bundle. Without an
+// explicit path, GitHub Pages can return its HTML 404 page for the WASM URL.
+ort.env.wasm.wasmPaths = new URL("./", import.meta.url).href;
+
 function App() {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState("");
